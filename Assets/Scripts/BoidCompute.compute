@@ -1,0 +1,73 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel BoidPositions
+#include <UnityShaderVariables.cginc>
+
+struct BoidData
+{
+    float3 position;
+    float3 initialPosition;
+    float oscillationOffset;
+    float size;
+};
+
+float3 _CorePos;
+float _SpinSpeed;
+float _OscillationSpeed;
+float _OscillationMagnitude;
+
+RWStructuredBuffer<BoidData> _BoidBuffer;
+
+float Rand(uint3 id)
+{
+    return frac(sin(dot(float2(id.x, id.y), float2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Rotate vector by axis using angle
+float3 RotateAroundAxis(float3 position, float3 axis, float angle)
+{
+    float cosAngle = cos(angle);
+    float sinAngle = sin(angle);
+
+    // Rotation matrix components
+    float3 xAxis = axis.x * axis;
+    float3 yAxis = axis.y * axis;
+    float3 zAxis = axis.z * axis;
+
+    // Rotation matrix
+    float3 rotatedPosition = cosAngle * position + sinAngle * cross(axis, position) + (1.0 - cosAngle) * dot(axis, position) * axis;
+
+    return rotatedPosition;
+}
+
+[numthreads(1024,1,1)]
+void BoidPositions (uint3 id : SV_DispatchThreadID)
+{
+    //Retrieve boid data
+    BoidData boid = _BoidBuffer[id.x];
+
+    //Calculate distance from core
+    float dst = distance(boid.initialPosition, _CorePos);
+
+    // Calculate spin data
+    float time = _Time.y;
+    float spinSpeed = _SpinSpeed / (dst + 0.01);
+    float angle = spinSpeed * time;
+    float oscillation = 1.0 + sin(time * _OscillationSpeed + boid.oscillationOffset) * _OscillationMagnitude;
+
+    //Rotate around Y
+    //float3 rotatedPos;
+    //rotatedPos.x = boid.initialPosition.x * cos(angle) - boid.initialPosition.z * sin(angle);
+    //rotatedPos.y = boid.initialPosition.y;
+    //rotatedPos.z = boid.initialPosition.x * sin(angle) + boid.initialPosition.z * cos(angle);
+
+    //Rotate around random axis
+    float3 randomAxis = normalize(float3(Rand(id), Rand(id + uint3(1, 0, 0)), Rand(id + uint3(0, 1, 0))));
+    float3 rotatedPos = RotateAroundAxis(boid.initialPosition, randomAxis, angle);
+
+    //Apply oscillation
+    rotatedPos *= oscillation;
+
+    //Updated particle writeback
+    boid.position = rotatedPos + _CorePos;
+    _BoidBuffer[id.x] = boid;
+}
