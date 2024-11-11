@@ -9,13 +9,25 @@ struct BoidData
     float oscillationOffset;
     float size;
 };
+struct PosData
+{
+    float3 CollisionPos;
+    float3 DefaultPos;
+};
 
 float3 _CorePos;
+float3 _AvoidPosition;
+float3 _PreviousAvoidPosition;
 float _SpinSpeed;
 float _OscillationSpeed;
 float _OscillationMagnitude;
+float _AvoidDistance;
+float _AvoidStrength;
+float _AvoidLerpSpeed;
+bool _CollisionDetected;
 
 RWStructuredBuffer<BoidData> _BoidBuffer;
+RWStructuredBuffer<PosData> _PreviousPositionBuffer;
 
 float Rand(uint3 id)
 {
@@ -69,5 +81,40 @@ void BoidPositions (uint3 id : SV_DispatchThreadID)
 
     //Updated particle writeback
     boid.position = rotatedPos + _CorePos;
+
+    //Retrieve BufferData
+    float3 previousPositionBuffer = _PreviousPositionBuffer[id.x].CollisionPos;
+    float3 defaultPositionBuffer = _PreviousPositionBuffer[id.x].DefaultPos;
+
+    //Smooth transition from avoidancePoint
+    previousPositionBuffer = lerp(previousPositionBuffer, _AvoidPosition, _AvoidLerpSpeed);
+
+    //Updatebuffer with transition POSITION
+    _PreviousPositionBuffer[id.x].CollisionPos = previousPositionBuffer;
+
+    //Apply smooth avoidance force only if vector is not zero
+    float3 offset = boid.position - previousPositionBuffer;
+    float sqrDst = dot(offset, offset);
+
+    if(true)
+    {
+        float distance = sqrt(sqrDst);
+        float strength = (_AvoidDistance - distance) / _AvoidDistance;
+        strength = saturate(strength) * _AvoidStrength;
+    
+    //Normalize offset and apply force
+    float3 avoidanceForce = normalize(offset) * strength;
+
+    //If no collision gradually apply no force //I'm confused wouldn't this be the opposit? but it still works
+    if(_CollisionDetected)
+    {
+        defaultPositionBuffer = lerp(defaultPositionBuffer, avoidanceForce, _AvoidLerpSpeed);
+    }
+    _PreviousPositionBuffer[id.x].DefaultPos = defaultPositionBuffer;
+    
+    //Smoothley steer away from object
+    boid.position += defaultPositionBuffer;
+    }
+
     _BoidBuffer[id.x] = boid;
 }
