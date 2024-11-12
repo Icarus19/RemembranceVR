@@ -13,7 +13,7 @@ public class WispMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        transform.position = new Vector3(newPosition.x, newPosition.y + Mathf.PingPong(Time.time, idleHeight) * pingPongSpeed, newPosition.z);
+        transform.position = new Vector3(transform.position.x, newPosition.y + Mathf.PingPong(Time.time, idleHeight) * pingPongSpeed, transform.position.z);
         
         
     }

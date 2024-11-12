@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9110e8d8b376e4b47990721ce1e24838, type: 3}
+  m_Name: WispSettings
+  m_EditorClassIdentifier: 
+  resolution: 3
+  bounds: {x: 5, y: 5, z: 5}
+  one: {r: 1, g: 1, b: 1, a: 0}
+  two: {r: 1, g: 0, b: 0, a: 0}
+  colliderModule: {fileID: 3367170277102192417, guid: d53ceff854d0d7f469a2e39563d76a24, type: 3}
+  gridParent: {fileID: 0}
+  mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  material: {fileID: 2100000, guid: 9c3ab7445f98cfc4cb5e7cfa12a36e7e, type: 2}
+  numBoids: 250
+  minSize: 0.04
+  maxSize: 0.75
+  sizeCoe: 0.05
+  fadeCoe: 1
+  meshTrail: {fileID: 0}
+  materialTrail: {fileID: 0}
+  numTrails: 0
+  boidCompute: {fileID: 7200000, guid: 69275d79abd6f4c47a6c2f7431e6be28, type: 3}
+  spinSpeed: 1.25
+  oscillationSpeed: 1.5
+  oscillationMagnitude: 0.5
+  avoidStrength: 2
+  avoidLerpSpeed: 0.1

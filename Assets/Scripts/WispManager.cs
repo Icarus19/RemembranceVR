@@ -18,7 +18,7 @@ public class WispManager : MonoBehaviour
     [SerializeField] Mesh mesh;
     [SerializeField] Material material;
     [SerializeField] int numBoids;
-    [SerializeField] float minSize, maxSize;
+    [SerializeField][Tooltip("Scale cannot be changed during runtime, and these will scale with the localscale of the wisp")]float minSize, maxSize;
     [SerializeField][Range(0.0f, 1.0f)] float sizeCoe, fadeCoe;
     uint[] args;
 
@@ -69,11 +69,11 @@ public class WispManager : MonoBehaviour
         for(int i = 0; i < numBoids; i++)
         {
             var positionBias = Mathf.Pow(Random.Range(0.0f, 1.0f), fadeCoe);
-            boids[i].position = Random.insideUnitSphere * Mathf.Lerp(0.0f, bounds.x, positionBias) * Mathf.Pow(bounds.x, 1 / 3) / 2;
+            boids[i].position = Random.insideUnitSphere * Mathf.Lerp(0.0f, bounds.x * transform.parent.localScale.x, positionBias) * Mathf.Pow(bounds.x * transform.parent.localScale.x, 1 / 3) / 2;
             boids[i].initialPosition = boids[i].position;
             boids[i].oscillationOffset = Random.Range(0.0f, Mathf.PI * 2f);
             var sizeBias = Mathf.Pow(Random.Range(0.0f, 1.0f), sizeCoe);
-            boids[i].size = Mathf.Lerp(maxSize, minSize, sizeBias);
+            boids[i].size = Mathf.Lerp(maxSize, minSize, sizeBias) * transform.parent.localScale.x;
         }
         boidBuffer = new ComputeBuffer(numBoids, sizeof(float) * (3 + 3 + 1 + 1), ComputeBufferType.IndirectArguments);
         boidBuffer.SetData(boids);
@@ -92,7 +92,7 @@ public class WispManager : MonoBehaviour
         boidCompute.SetBuffer(kernelID, "_PreviousPositionBuffer", prevPosBuffer);
         //Initialize in the begining to prevent double movement
         boidCompute.SetVector("_CorePos", transform.position);
-        boidCompute.SetFloat("_AvoidDistance", bounds.x / 2);
+        boidCompute.SetFloat("_AvoidDistance", bounds.x / 2 * transform.parent.localScale.x);
         material.SetBuffer("_BoidBuffer", boidBuffer);
         //Testing zone
         materialTrail.SetBuffer("_BoidBuffer", boidBuffer);
@@ -100,7 +100,7 @@ public class WispManager : MonoBehaviour
     }
     void Update()
     {
-        RenderMesh(mesh, material, bounds, numBoids);
+        RenderMesh(mesh, material, bounds * transform.parent.localScale.x, numBoids);
         UpdateShader();
         //DrawBounds(new Bounds(transform.position, Vector3.one * bounds.x));
         //DrawBounds(new Bounds(transform.position, Vector3.one * bounds.x));
@@ -147,7 +147,13 @@ public class WispManager : MonoBehaviour
             {
                 for(int k = 0; k < resolution; k++)
                 {
-                    GameObject tmp = Instantiate(colliderModule, transform.position - bounds / 2 + bounds / resolution / 2 + new Vector3(i * bounds.x / resolution, j * bounds.y / resolution, k * bounds.z / resolution), transform.rotation, gridParent);
+                    GameObject tmp = Instantiate(colliderModule, (transform.position - bounds / 2
+                        + bounds / resolution / 2
+                        + new Vector3(i * bounds.x / resolution,
+                        j * bounds.y / resolution,
+                        k * bounds.z / resolution)),
+                        transform.rotation, gridParent);
+                    tmp.transform.localScale /= transform.parent.localScale.x;
                     colliderGrid[id] = tmp.transform;
                     tmp.GetComponent<BoxCollider>().size = bounds / resolution;
                     id++;
@@ -163,7 +169,7 @@ public class WispManager : MonoBehaviour
             args = GetArgsBuffer(mesh, (uint)numBoids);
         }
         argsBuffer.SetData(args);
-        Graphics.DrawMeshInstancedIndirect(mesh, 0, material, new Bounds(transform.position, Vector3.one * bounds.x), argsBuffer);
+        Graphics.DrawMeshInstancedIndirect(mesh, 0, material, new Bounds(transform.position, Vector3.one * bounds.x * transform.parent.localScale.x), argsBuffer);
         //Testing stuff here now
         if (trailBuffer == null)
         {
