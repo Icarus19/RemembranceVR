@@ -91,14 +91,14 @@ Shader "Custom/WispParticles"
                 inputData.bakedGI = SAMPLE_GI(i.lightmapUV, i.vertexSH, inputData.normalWS);
 
                 SurfaceData surfaceData;
-                surfaceData.albedo = _BaseColor;
+                surfaceData.albedo = _BaseColor.xyz;
                 surfaceData.specular = 0;
                 surfaceData.metallic = 0;
                 surfaceData.smoothness = 0;
                 surfaceData.normalTS = 0;
                 surfaceData.emission = _EmissionColor;
                 surfaceData.occlusion = 1;
-                surfaceData.alpha = 0;
+                surfaceData.alpha = _BaseColor.w;
                 surfaceData.clearCoatMask = 0;
                 surfaceData.clearCoatSmoothness = 0;
 

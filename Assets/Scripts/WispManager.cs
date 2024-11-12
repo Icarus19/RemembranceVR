@@ -18,7 +18,6 @@ public class WispManager : MonoBehaviour
     [SerializeField] Mesh mesh;
     [SerializeField] Material material;
     [SerializeField] int numBoids;
-    [SerializeField] BoidsManager boidsManager;
     [SerializeField] float minSize, maxSize;
     [SerializeField][Range(0.0f, 1.0f)] float sizeCoe, fadeCoe;
     uint[] args;
@@ -56,6 +55,7 @@ public class WispManager : MonoBehaviour
     }
 
     public BoidData[] boids;
+    PosData[] posData;
     ComputeBuffer argsBuffer, boidBuffer, trailBuffer, prevPosBuffer;
     void Awake()
     {
@@ -78,14 +78,21 @@ public class WispManager : MonoBehaviour
         boidBuffer = new ComputeBuffer(numBoids, sizeof(float) * (3 + 3 + 1 + 1), ComputeBufferType.IndirectArguments);
         boidBuffer.SetData(boids);
 
-        prevPosBuffer = new ComputeBuffer(numBoids, sizeof(float) * (3 + 3), ComputeBufferType.Default);
+        posData = new PosData[numBoids];
+        for (int i = 0; i < numBoids; i++)
+        {
+            posData[i].CollisionPos = Vector3.zero;
+            posData[i].DefaultPos = Vector3.zero;
+        }
+        prevPosBuffer = new ComputeBuffer(numBoids, sizeof(float) * (3 + 3), ComputeBufferType.Structured);
+        prevPosBuffer.SetData(posData);
 
         kernelID = boidCompute.FindKernel("BoidPositions");
         boidCompute.SetBuffer(kernelID, "_BoidBuffer", boidBuffer);
         boidCompute.SetBuffer(kernelID, "_PreviousPositionBuffer", prevPosBuffer);
-        boidCompute.SetFloat("_AvoidDistance", bounds.x / resolution);
-        //This has to be set as initial position or the object moves twice with each translation
+        //Initialize in the begining to prevent double movement
         boidCompute.SetVector("_CorePos", transform.position);
+        boidCompute.SetFloat("_AvoidDistance", bounds.x / 2);
         material.SetBuffer("_BoidBuffer", boidBuffer);
         //Testing zone
         materialTrail.SetBuffer("_BoidBuffer", boidBuffer);
@@ -160,10 +167,10 @@ public class WispManager : MonoBehaviour
         //Testing stuff here now
         if (trailBuffer == null)
         {
-            args = GetArgsBuffer(mesh, (uint)(numBoids * numTrails));
+            //args = GetArgsBuffer(mesh, (uint)(numBoids * numTrails));
         }
-        trailBuffer.SetData(args);
-        Graphics.DrawMeshInstancedIndirect(meshTrail, 0, materialTrail, new Bounds(transform.position, Vector3.one * bounds.x), trailBuffer);
+        //trailBuffer.SetData(args);
+        //Graphics.DrawMeshInstancedIndirect(meshTrail, 0, materialTrail, new Bounds(transform.position, Vector3.one * bounds.x), trailBuffer);
         //End of testing here
     }
 
@@ -171,7 +178,7 @@ public class WispManager : MonoBehaviour
     {
         argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
         //Experiment
-        trailBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
+        //trailBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
         //end
 
         args = new uint[5] { 0, 0, 0, 0, 0 };
@@ -205,11 +212,12 @@ public class WispManager : MonoBehaviour
     {
         for(int i = 0; i < colliderGrid.Length; i++)
         {
-            if (colliderGrid[i].GetComponent<ColliderModule>().collision)
-            {
-                collisionDetected = true;
-                return colliderGrid[i].transform.position;
-            }
+                    if (colliderGrid[i].GetComponent<ColliderModule>().collision)
+                    {
+                        collisionDetected = true;
+                        //var colliderPosition = transform.position - bounds / 2 + bounds / resolution / 2 + new Vector3(i * bounds.x / resolution, j * bounds.y / resolution, k * bounds.z / resolution);
+                        return colliderGrid[i].GetComponent<ColliderModule>().initialPosition;
+                    }
         }
         collisionDetected = false;
         return transform.position;
@@ -227,8 +235,8 @@ public class WispManager : MonoBehaviour
         prevPosBuffer = null;
 
         //Testing zone
-        trailBuffer.Release();
-        trailBuffer = null;
+        //trailBuffer.Release();
+        //trailBuffer = null;
         //end of test
     }
 

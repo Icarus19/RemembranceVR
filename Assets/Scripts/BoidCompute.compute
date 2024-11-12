@@ -65,13 +65,7 @@ void BoidPositions (uint3 id : SV_DispatchThreadID)
     float spinSpeed = _SpinSpeed / (dst + 0.01);
     float angle = spinSpeed * time;
     float oscillation = 1.0 + sin(time * _OscillationSpeed + boid.oscillationOffset) * _OscillationMagnitude;
-
-    //Rotate around Y
-    //float3 rotatedPos;
-    //rotatedPos.x = boid.initialPosition.x * cos(angle) - boid.initialPosition.z * sin(angle);
-    //rotatedPos.y = boid.initialPosition.y;
-    //rotatedPos.z = boid.initialPosition.x * sin(angle) + boid.initialPosition.z * cos(angle);
-
+    
     //Rotate around random axis
     float3 randomAxis = normalize(float3(Rand(id), Rand(id + uint3(1, 0, 0)), Rand(id + uint3(0, 1, 0))));
     float3 rotatedPos = RotateAroundAxis(boid.initialPosition, randomAxis, angle);
@@ -92,15 +86,13 @@ void BoidPositions (uint3 id : SV_DispatchThreadID)
     //Updatebuffer with transition POSITION
     _PreviousPositionBuffer[id.x].CollisionPos = previousPositionBuffer;
 
-    //Apply smooth avoidance force only if vector is not zero
+    //Apply smooth avoidance force
     float3 offset = boid.position - previousPositionBuffer;
     float sqrDst = dot(offset, offset);
 
-    if(true)
-    {
-        float distance = sqrt(sqrDst);
-        float strength = (_AvoidDistance - distance) / _AvoidDistance;
-        strength = saturate(strength) * _AvoidStrength;
+    float distance = sqrt(sqrDst);
+    float strength = (_AvoidDistance - distance) / _AvoidDistance;
+    strength = saturate(strength) * _AvoidStrength;
     
     //Normalize offset and apply force
     float3 avoidanceForce = normalize(offset) * strength;
@@ -114,7 +106,6 @@ void BoidPositions (uint3 id : SV_DispatchThreadID)
     
     //Smoothley steer away from object
     boid.position += defaultPositionBuffer;
-    }
 
     _BoidBuffer[id.x] = boid;
 }
